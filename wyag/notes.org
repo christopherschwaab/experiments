@@ -1,0 +1,77 @@
+#+TITLE: On git
+
+* 'Content addressed' filesystem
++ In git, files are named based on their contents, so a content change => name
+  change (this is the hash 'git hash-object').
+  - Normally file system's name files using a 'path' and a 'name'.
+
+* All things in git are 'objects', i.e. a thing that gets hashed
++ Each object gets put into the object dir under a directory named using its
+  first 2 hash digits (to split objects across 256 dirs for performance).
++ Each object is compressed, and starts with:
+  1. a type 'blob', 'commit', 'tag', 'tree',
+  2. a space (0x20),
+  3. the object's size as an ascii string,
+  4. a null byte (0x00).
+
+** Types of objects
+a. ref: TODO
+b. tree: TODO
+c. blob: TODO
+d. ref: TODO
+
+** Commit object
++ Contains
+  1. a pointer to a tree object;
+  2. a pointer to a parent object;
+  3. an author with a timestamp;
+  4. a committer with a timestamp;
+  5. a (optional) PGP signature;
+  6. the commit message.
+
+** Tree objects
++ Describe the actual contents of a commit: files, and where they go.
+  - Associates blobs to paths.
+  - Array of (FileMode, Path, SHA1) where the sha refers to either:
+    1. a blob: when the path is a file; or
+    2. a tree when the path is a directory.
+  - Encoded as: [mode] 0x20 [path] 0x00 [sha-1]
+    1. Mode is a 6-digit (or less) ascii number.
+    2. path is a null terminated string.
+    3. SHA-1 a 20-byte binary encoded value.
+
+** Ref object
++ Simplest git structure, and are text files in *.git/refs* contain an object
+  hash as ascii hex and are direct or indirect:
+  - direct: refer to an object hash as hex SHA *6071c08bcb4757d8c89a30d9755d2466cef8c1de*
+  - indirect: refer to another reference as *ref: path/to/other/ref*, e.g. *ref: refs/remotes/origin/master*
+
+** Tag object
++ Essentially a ref plus metadata.
+  - Live in ~.git/refs/tags/~.
+  - One of either:
+    1. a 'lightweight' tag: a ref to a commit, tree, or blob; or
+    2. a 'tag object': point to another ~tag~ object and includes an author,
+       date, an optional pgp signature, and an optional annotation.
+
+** Branch (not a distinct object)
++ A reference to a commit.
+  - Live in ~.git/refs/heads~.
+  - Updated at every commit, committing:
+    1. creates a new commit object with the current branch ID as its parent;
+    2. hashes and stores the commit object;
+    3. updates the branch ref to refer to the new commit's hash.
++ The *current* branch is an indirect ref outside ~refs/~, in ~.git/HEAD~ (i.e.
+  has form ~ref: path/to/other/ref~).
++ Detached HEAD transforms ~.git/HEAD~ into a *direct* reference conatining a
+  SHA.
+
+** Staging area and the index file
++ Index file represents a set of changes from HEAD to commit, consiting of:
+  1. A classic header with a signature and basic info including the number of entries currently held.
+  2. Sorted entries, each representing a change.
+  3. A collection of optional extensions.
++ Read ~Documentation/technical/commit-graph-format.txt~
+
+** TODO git rev-parse
+** TODO git reflot
